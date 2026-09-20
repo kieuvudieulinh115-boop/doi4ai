@@ -1,0 +1,8 @@
+{
+  "name": "Remix Luyện Đọc Hiểu THCS",
+  "description": "Ứng dụng tương tác hỗ trợ học sinh THCS luyện đọc hiểu văn bản: giải nghĩa từ khó theo ngữ cảnh, tóm tắt ý chính, sinh câu hỏi và gợi ý đối chiếu dẫn chứng.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

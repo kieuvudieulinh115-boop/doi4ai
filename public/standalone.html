@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luyện Đọc Hiểu (Phiên bản Độc lập Vanilla JS)</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            serif: ['Lora', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .citation-glow {
+      background: linear-gradient(90deg, rgba(6, 182, 212, 0.28) 0%, rgba(59, 130, 246, 0.35) 100%);
+      padding: 2px 6px;
+      border-radius: 6px;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+      border: 1px solid rgba(34, 211, 238, 0.6);
+      font-weight: 600;
+    }
+    .vocab-badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(129, 140, 248, 0.4);
+      color: #818cf8;
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-[#0b1120] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-[#0b1120]/90 sticky top-0 z-30 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- Left: Logo & Student Profile -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+          <i data-lucide="cpu" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold">Luyện Đọc Hiểu</h1>
+            <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">Vanilla JS SPA</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
+            <span id="student-display" class="text-cyan-300 font-semibold cursor-pointer hover:underline" onclick="openStudentModal()">Nguyễn Văn A - Lớp 7A1</span>
+            <span>•</span>
+            <span class="text-emerald-400">Chuẩn GDPT 2018</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Progress, API Key & Actions -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <!-- Progress Bar -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-xs font-mono">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Tiến độ:</span>
+          <span id="progress-text" class="font-bold text-cyan-400">0/3</span>
+          <div class="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+            <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <!-- API Key button -->
+        <button onclick="openApiKeyModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-mono text-amber-300">
+          <i data-lucide="key" class="w-3.5 h-3.5"></i>
+          <span id="api-key-badge-text">API Key</span>
+        </button>
+
+        <!-- Change passage -->
+        <button onclick="openPassageModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Đổi bài đọc</span>
+        </button>
+
+        <!-- AI Analyze button -->
+        <button id="btn-trigger-ai" onclick="analyzePassageWithGemini()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white font-semibold text-xs bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:to-indigo-500 shadow-md">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refresh-icon"></i>
+          <span>Phân tích AI</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container Split Screen -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Left Pane: Reading Passage & Vocab (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl overflow-hidden flex flex-col h-[580px]">
+        <!-- Passage Header -->
+        <div class="px-4 py-3 border-b border-slate-800 bg-slate-900 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-cyan-400"></i>
+            <h2 id="passage-title-display" class="font-bold text-sm truncate">Bài học đường đời đầu tiên</h2>
+          </div>
+          <button onclick="readPassageAudio()" class="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800 text-xs font-mono text-cyan-400 flex items-center gap-1">
+            <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+            <span>Đọc mẫu</span>
+          </button>
+        </div>
+
+        <!-- Citation notification -->
+        <div id="citation-banner" class="hidden px-4 py-2 bg-cyan-950/70 border-b border-cyan-500/40 text-xs text-cyan-200 flex items-center justify-between">
+          <span class="truncate italic" id="citation-text-preview">Đang soi dẫn chứng...</span>
+          <button onclick="clearCitationHighlight()" class="text-cyan-400 font-mono text-[11px] underline ml-2">[Xóa]</button>
+        </div>
+
+        <!-- Passage Text Body -->
+        <div id="passage-content-display" class="p-5 overflow-y-auto flex-1 font-serif text-[16px] leading-[1.85] text-slate-200">
+          <!-- Text rendered here -->
+        </div>
+
+        <div class="px-4 py-2 border-t border-slate-800 text-[11px] font-mono text-slate-500 flex items-center justify-between">
+          <span>Ngữ văn • Tô Hoài</span>
+          <span class="text-cyan-400">Đối chiếu dẫn chứng</span>
+        </div>
+      </div>
+
+      <!-- Vocabulary Card -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-xl">
+        <div class="flex items-center gap-2 font-mono text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-3">
+          <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
+          <span>Từ khó ngữ cảnh (Học sinh THCS)</span>
+        </div>
+        <div id="vocab-list-container" class="space-y-2.5 text-xs">
+          <!-- Vocab items rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Pane: Summary & Question Answering Center (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      <!-- AI Summary Card -->
+      <div class="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/30 via-slate-900 to-indigo-950/30 p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-2 font-mono text-xs text-cyan-400">
+          <span class="flex items-center gap-1.5 font-bold uppercase">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Tóm tắt ý chính & Chủ đề cốt lõi
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30">GDPT 2018</span>
+        </div>
+        <p id="summary-display" class="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans mb-2">
+          Đoạn trích miêu tả vẻ đẹp cường tráng, đầy sức sống nhưng có phần kiêu ngạo của Dế Mèn qua lăng kính quan sát chi tiết.
+        </p>
+        <div class="text-[11px] font-mono text-cyan-300 flex items-center gap-2">
+          <span class="text-slate-400">Chủ đề:</span>
+          <span id="theme-display" class="italic">Vẻ đẹp ngoại hình và sự tự tin bước đầu của tuổi trẻ</span>
+        </div>
+      </div>
+
+      <!-- Questions List -->
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm font-mono flex items-center gap-2 text-slate-200">
+          <i data-lucide="help-circle" class="w-4 h-4 text-cyan-400"></i>
+          <span>Hệ thống câu hỏi đọc hiểu rèn luyện</span>
+        </h3>
+        <span class="text-xs font-mono text-slate-400">Không mớm cung • Có căn cứ văn bản</span>
+      </div>
+
+      <div id="questions-container" class="space-y-4">
+        <!-- Dynamic questions rendered here -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <!-- API Key Modal -->
+  <div id="modal-api-key" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+          <i data-lucide="key" class="w-4 h-4"></i> Cấu hình Google Gemini API Key
+        </h3>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p class="text-xs text-slate-300 mb-3">
+        Nhập khóa API Gemini cá nhân của bạn để sử dụng trực tiếp mô hình <code class="text-cyan-300">gemini-1.5-flash</code> / <code class="text-cyan-300">gemini-2.0-flash</code>. Khóa được lưu an toàn trong trình duyệt (localStorage).
+      </p>
+      <input id="input-api-key" type="password" placeholder="AIzaSy..." class="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl font-mono text-slate-100 mb-3 focus:outline-none focus:border-cyan-500">
+      <div class="flex justify-between items-center text-xs font-mono">
+        <button onclick="clearSavedApiKey()" class="text-rose-400 hover:underline">Xóa khóa</button>
+        <div class="space-x-2">
+          <button onclick="closeApiKeyModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">Hủy</button>
+          <button onclick="saveApiKeyFromModal()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold">Lưu lại</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Profile Modal -->
+  <div id="modal-student" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+          <i data-lucide="user" class="w-4 h-4"></i> Thông tin học sinh
+        </h3>
+        <button onclick="closeStudentModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Tên học sinh:</label>
+          <input id="input-student-name" type="text" value="Nguyễn Văn A" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Lớp:</label>
+          <input id="input-student-class" type="text" value="Lớp 7A1" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 mb-2">
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="document.getElementById('input-student-class').value='Lớp 6A1'" class="text-[11px] font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:text-cyan-300">Lớp 6A1</button>
+            <button type="button" onclick="document.getElementById('input-student-class').value='Lớp 7A1'" class="text-[11px] font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:text-cyan-300">Lớp 7A1</button>
+            <button type="button" onclick="document.getElementById('input-student-class').value='Lớp 8A1'" class="text-[11px] font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:text-cyan-300">Lớp 8A1</button>
+            <button type="button" onclick="document.getElementById('input-student-class').value='Lớp 9A1'" class="text-[11px] font-mono px-2 py-0.5 rounded border border-slate-700 bg-slate-800 text-slate-300 hover:text-cyan-300">Lớp 9A1</button>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button onclick="closeStudentModal()" class="px-3 py-1.5 text-xs rounded-lg border border-slate-700 text-slate-300">Hủy</button>
+        <button onclick="saveStudentModal()" class="px-4 py-1.5 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passage Editor Modal -->
+  <div id="modal-passage" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 max-w-2xl w-full rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold font-mono text-cyan-400 flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-4 h-4"></i> Soạn thảo / Đổi bài đọc ngữ liệu
+        </h3>
+        <button onclick="closePassageModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-4 text-xs sm:text-sm overflow-y-auto flex-1 pr-1">
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Tiêu đề bài đọc / Tác phẩm:</label>
+          <input id="input-passage-title" type="text" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-sans">
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">Đoạn văn ngữ liệu (tối thiểu 20 ký tự):</label>
+          <textarea id="input-passage-text" rows="8" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 font-serif leading-relaxed"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-800 font-mono text-xs">
+        <button onclick="closePassageModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">Đóng</button>
+        <button onclick="savePassageModal()" class="px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold flex items-center gap-1">
+          <i data-lucide="check" class="w-3.5 h-3.5"></i> Cập nhật & Phân tích lại
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vanilla JS Application Core Logic -->
+  <script>
+    // State management
+    const state = {
+      student: { name: 'Nguyễn Văn A', className: 'Lớp 7A1' },
+      apiKey: localStorage.getItem('gemini_api_key') || '',
+      title: 'Bài học đường đời đầu tiên (Trích Dế Mèn phiêu lưu ký - Tô Hoài)',
+      passage: `Bởi tôi ăn uống điều độ và làm việc có chừng mực nên tôi chóng lớn lắm. Chẳng bao lâu, tôi đã trở thành một chàng dế thanh niên cường tráng. Đôi càng tôi mẫm bóng. Những cái vuốt ở chân, ở khoeo cứ cứng dần và nhọn hoắt. Thỉnh thoảng, muốn thử sự lợi hại của những chiếc vuốt, tôi co cẳng lên, đạp phanh phách vào các ngọn cỏ. Những ngọn cỏ gãy rạp, y như có nhát dao vừa lia qua. Đôi cánh tôi, trước kia ngắn hủn hoẳn, bây giờ thành cái áo dài kín xuống tận chấm đuôi. Mỗi khi tôi vũ lên, đã nghe tiếng phành phạch giòn giã. Lúc tôi đi bách bộ thì cả người tôi rung rinh một màu nâu bóng mỡ soi gương được và rất ưa nhìn. Đầu tôi to ra và nổi từng tảng, rất bướng. Hai cái răng đen hủm lúc nào cũng nhai ngoàm ngoạp như hai lưỡi liềm máy làm việc. Sợi râu tôi dài và uốn cong một vẻ rất đỗi hùng dũng. Tôi lấy làm hãnh diện với bà con về cặp râu ấy lắm. Cứ chốc chốc tôi lại trịnh trọng và khoan thai đưa cả hai chân trước lên vuốt râu.
+Tôi đi đứng oai vệ. Mỗi bước đi, tôi làm điệu dún dẩy các khoeo chân, rung lên rung xuống hai chiếc râu. Cho cả tôi tợn lắm. Tôi trợn mắt nhìn mọi người, ra dáng một võ sĩ đắc thắng.`,
+      selectedCitation: null,
+      summary: 'Đoạn trích miêu tả vẻ đẹp ngoại hình cường tráng, khỏe khoắn nhưng chứa đựng tính cách kiêu căng, ngạo mạn của Dế Mèn khi mới bước vào đời.',
+      mainTheme: 'Sự tự hào về vẻ đẹp thể chất và bài học về thái độ khiêm nhường trước cuộc đời.',
+      vocabulary: [
+        {
+          word: 'cường tráng',
+          contextMeaning: 'Khỏe mạnh, nở nang, tràn đầy sức lực của tuổi thanh niên sung sức.',
+          originalSentence: 'Chẳng bao lâu, tôi đã trở thành một chàng dế thanh niên cường tráng.'
+        },
+        {
+          word: 'hãnh diện',
+          contextMeaning: 'Cảm thấy tự hào, sung sướng và có phần muốn khoe khoang sự vượt trội của bản thân.',
+          originalSentence: 'Tôi lấy làm hãnh diện với bà con về cặp râu ấy lắm.'
+        },
+        {
+          word: 'trịnh trọng',
+          contextMeaning: 'Cử chỉ nghiêm trang, đàng hoàng, có ý phô trương sự trang nghiêm của bản thân.',
+          originalSentence: 'Cứ chốc chốc tôi lại trịnh trọng và khoan thai đưa cả hai chân trước lên vuốt râu.'
+        }
+      ],
+      questions: [
+        {
+          id: 'q1',
+          level: 'nhan-biet',
+          levelLabel: 'Nhận biết',
+          question: 'Tìm những chi tiết miêu tả ngoại hình (đôi càng, đôi cánh, hai cái răng) cho thấy Dế Mèn là một chàng dế cường tráng?',
+          hintLevel1: 'Em hãy đọc kỹ đoạn 1 và gạch chân dưới các từ ngữ tả hình dáng, màu sắc các bộ phận của Dế Mèn.',
+          hintLevel2: 'Manh mối nằm ở: "Đôi càng tôi mẫm bóng", "áo dài kín xuống tận chấm đuôi", "hai cái răng đen hủm".',
+          citationQuote: 'Đôi càng tôi mẫm bóng. Những cái vuốt ở chân, ở khoeo cứ cứng dần và nhọn hoắt.',
+          studentAnswer: '',
+          feedback: null,
+          revealedHints: 0
+        },
+        {
+          id: 'q2',
+          level: 'thong-hieu',
+          levelLabel: 'Thông hiểu',
+          question: 'Qua những hành động và cử chỉ của Dế Mèn (co cẳng đạp phanh phách, đi bách bộ rung rinh, trợn mắt nhìn mọi người), em nhận xét gì về tính nết của nhân vật này?',
+          hintLevel1: 'Bên cạnh vẻ đẹp ngoại hình khỏe mạnh, Dế Mèn có thái độ như thế nào đối với sức mạnh của mình và với mọi người xung quanh?',
+          hintLevel2: 'Chú ý cụm từ "ra dáng một võ sĩ đắc thắng" và "rất bướng". Đó là sự tự tin tích cực hay tính tự phụ?',
+          citationQuote: 'Tôi trợn mắt nhìn mọi người, ra dáng một võ sĩ đắc thắng.',
+          studentAnswer: '',
+          feedback: null,
+          revealedHints: 0
+        },
+        {
+          id: 'q3',
+          level: 'van-dung',
+          levelLabel: 'Vận dụng',
+          question: 'Từ thái độ của Dế Mèn khi tự đánh giá bản thân ở đoạn trích trên, em rút ra bài học gì về việc thể hiện sự tự tin và cách ứng xử với bạn bè cùng trang lứa?',
+          hintLevel1: 'Tự tin về điểm mạnh của bản thân là tốt, nhưng nếu quá hãnh diện và coi thường người khác thì sẽ dẫn tới hậu quả gì?',
+          hintLevel2: 'Liên hệ giữa việc rèn luyện sức khỏe (tích cực) với việc giữ đức tính khiêm tốn, hòa đồng.',
+          citationQuote: 'Tôi lấy làm hãnh diện với bà con về cặp râu ấy lắm.',
+          studentAnswer: '',
+          feedback: null,
+          revealedHints: 0
+        }
+      ]
+    };
+
+    // Initialize UI
+    function init() {
+      // Load student profile if saved
+      const savedStudent = localStorage.getItem('thcs_student_profile');
+      if (savedStudent) {
+        try { state.student = JSON.parse(savedStudent); } catch (e) {}
+      }
+      renderHeader();
+      renderPassage();
+      renderVocab();
+      renderQuestions();
+      lucide.createIcons();
+    }
+
+    function renderHeader() {
+      document.getElementById('student-display').innerText = `${state.student.name} - ${state.student.className}`;
+      document.getElementById('passage-title-display').innerText = state.title;
+      document.getElementById('summary-display').innerText = state.summary;
+      document.getElementById('theme-display').innerText = state.mainTheme;
+      
+      const answered = state.questions.filter(q => q.studentAnswer && q.studentAnswer.trim().length > 0).length;
+      document.getElementById('progress-text').innerText = `${answered}/${state.questions.length}`;
+      const pct = (answered / state.questions.length) * 100;
+      document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+
+      const keyBadge = document.getElementById('api-key-badge-text');
+      if (state.apiKey) {
+        keyBadge.innerText = 'Khóa đã lưu ✓';
+      } else {
+        keyBadge.innerText = 'Cài đặt API';
+      }
+    }
+
+    function renderPassage() {
+      const container = document.getElementById('passage-content-display');
+      const paragraphs = state.passage.split('\n').filter(p => p.trim().length > 0);
+
+      container.innerHTML = paragraphs.map(p => {
+        let text = p;
+        if (state.selectedCitation && text.includes(state.selectedCitation)) {
+          const parts = text.split(state.selectedCitation);
+          text = `${parts[0]}<mark class="citation-glow">${state.selectedCitation}</mark>${parts.slice(1).join(state.selectedCitation)}`;
+        }
+        return `<p class="mb-4">${text}</p>`;
+      }).join('');
+
+      const banner = document.getElementById('citation-banner');
+      if (state.selectedCitation) {
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+        document.getElementById('citation-text-preview').innerText = `"${state.selectedCitation}"`;
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }
+    }
+
+    function setCitation(quote) {
+      state.selectedCitation = quote;
+      renderPassage();
+    }
+
+    function clearCitationHighlight() {
+      state.selectedCitation = null;
+      renderPassage();
+    }
+
+    function renderVocab() {
+      const container = document.getElementById('vocab-list-container');
+      container.innerHTML = state.vocabulary.map(v => `
+        <div class="p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-indigo-500/40 transition-colors">
+          <div class="flex items-center justify-between font-mono font-bold text-indigo-300">
+            <span>${v.word}</span>
+            <button onclick="setCitation('${v.originalSentence.replace(/'/g, "\\'")}')" class="text-[10px] text-slate-400 hover:text-cyan-300 underline font-normal">Soi trong bài</button>
+          </div>
+          <p class="mt-1 text-slate-300">${v.contextMeaning}</p>
+        </div>
+      `).join('');
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = state.questions.map((q, idx) => {
+        const badgeColor = q.level === 'nhan-biet' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' :
+          q.level === 'thong-hieu' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' :
+          'bg-purple-500/10 text-purple-400 border-purple-500/30';
+
+        return `
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg space-y-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded border ${badgeColor}">
+                  Câu ${idx + 1}: ${q.levelLabel}
+                </span>
+                <h4 class="text-sm font-semibold text-slate-100 mt-1">${q.question}</h4>
+              </div>
+            </div>
+
+            <!-- Student Answer Textarea -->
+            <div>
+              <textarea 
+                oninput="updateStudentAnswer('${q.id}', this.value)" 
+                placeholder="Nhập câu trả lời của em (dựa trên dẫn chứng từ bài đọc)..." 
+                rows="3" 
+                class="w-full p-3 text-xs sm:text-sm bg-slate-950 border border-slate-700/80 rounded-xl text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 font-sans"
+              >${q.studentAnswer || ''}</textarea>
+            </div>
+
+            <!-- Scaffolding Hint Accordion Buttons -->
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <button onclick="revealHint('${q.id}', 1)" class="px-3 py-1 rounded-lg border ${q.revealedHints >= 1 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'} flex items-center gap-1">
+                <i data-lucide="compass" class="w-3.5 h-3.5"></i> Gợi ý hướng nghĩ (Mức 1)
+              </button>
+              <button onclick="revealHint('${q.id}', 2)" class="px-3 py-1 rounded-lg border ${q.revealedHints >= 2 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'} flex items-center gap-1">
+                <i data-lucide="target" class="w-3.5 h-3.5"></i> Manh mối & Dẫn chứng (Mức 2)
+              </button>
+              <button onclick="setCitation('${q.citationQuote.replace(/'/g, "\\'")}')" class="px-3 py-1 rounded-lg border border-cyan-500/40 bg-cyan-950/40 text-cyan-300 hover:bg-cyan-900/50 flex items-center gap-1 ml-auto">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i> Soi dẫn chứng chuẩn
+              </button>
+            </div>
+
+            <!-- Display revealed hints -->
+            ${q.revealedHints >= 1 ? `
+              <div class="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl text-xs text-amber-200">
+                <p class="font-bold font-mono text-[11px] text-amber-400 uppercase tracking-wider mb-0.5">Gợi ý Mức 1 (Định hướng tư duy):</p>
+                <p>${q.hintLevel1}</p>
+              </div>
+            ` : ''}
+
+            ${q.revealedHints >= 2 ? `
+              <div class="p-3 bg-amber-950/30 border border-amber-500/40 rounded-xl text-xs text-amber-200">
+                <p class="font-bold font-mono text-[11px] text-amber-400 uppercase tracking-wider mb-0.5">Gợi ý Mức 2 (Manh mối văn bản):</p>
+                <p>${q.hintLevel2}</p>
+              </div>
+            ` : ''}
+
+            <!-- Check Answer Button -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button onclick="checkAnswerWithAI('${q.id}')" class="px-4 py-2 text-xs font-mono font-bold rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-md flex items-center gap-1.5">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                <span>Đối chiếu với AI</span>
+              </button>
+            </div>
+
+            <!-- AI Feedback Panel -->
+            ${q.feedback ? `
+              <div class="p-4 rounded-xl border ${q.feedback.isGrounded ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200' : 'bg-rose-950/20 border-rose-500/30 text-rose-200'} text-xs space-y-2">
+                <div class="flex items-center justify-between font-mono font-bold">
+                  <span class="flex items-center gap-1.5 ${q.feedback.isGrounded ? 'text-emerald-400' : 'text-rose-400'}">
+                    <i data-lucide="${q.feedback.isGrounded ? 'check-circle' : 'alert-circle'}" class="w-4 h-4"></i>
+                    ${q.feedback.isGrounded ? 'Câu trả lời có căn cứ văn bản' : 'Cần đối chiếu lại với bài đọc'}
+                  </span>
+                  <span class="text-[10px] text-slate-400">Không cho điểm • Không mớm đáp án</span>
+                </div>
+                <p class="leading-relaxed text-slate-200">${q.feedback.feedbackComment}</p>
+                ${q.feedback.citationQuotes && q.feedback.citationQuotes.length > 0 ? `
+                  <div class="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-serif text-cyan-300">
+                    <span class="font-mono text-[10px] uppercase text-cyan-400 block mb-1">Dẫn chứng xác thực từ bài đọc:</span>
+                    "${q.feedback.citationQuotes[0]}"
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function updateStudentAnswer(qId, val) {
+      const q = state.questions.find(item => item.id === qId);
+      if (q) {
+        q.studentAnswer = val;
+        renderHeader();
+      }
+    }
+
+    function revealHint(qId, level) {
+      const q = state.questions.find(item => item.id === qId);
+      if (q) {
+        q.revealedHints = level;
+        renderQuestions();
+      }
+    }
+
+    // Call Gemini API (either direct or via local server)
+    async function checkAnswerWithAI(qId) {
+      const q = state.questions.find(item => item.id === qId);
+      if (!q || !q.studentAnswer.trim()) {
+        alert('Vui lòng nhập câu trả lời của em trước khi đối chiếu với AI nhé!');
+        return;
+      }
+
+      // If user provided a client API Key, we can call Gemini REST API directly or pass to server proxy
+      const headers = { 'Content-Type': 'application/json' };
+      if (state.apiKey) {
+        headers['x-gemini-api-key'] = state.apiKey;
+      }
+
+      try {
+        const res = await fetch('/api/check-answer', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            passage: state.passage,
+            question: q.question,
+            studentAnswer: q.studentAnswer,
+            citationQuote: q.citationQuote,
+            hintLevel1: q.hintLevel1,
+            hintLevel2: q.hintLevel2,
+            apiKey: state.apiKey
+          })
+        });
+        const data = await res.json();
+        q.feedback = data;
+        if (data.citationQuotes && data.citationQuotes.length > 0) {
+          setCitation(data.citationQuotes[0]);
+        }
+        renderQuestions();
+      } catch (err) {
+        console.error(err);
+        alert('Đã xảy ra lỗi khi kiểm tra với AI.');
+      }
+    }
+
+    async function analyzePassageWithGemini() {
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('animate-spin');
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (state.apiKey) {
+        headers['x-gemini-api-key'] = state.apiKey;
+      }
+
+      try {
+        const res = await fetch('/api/analyze-passage', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            passage: state.passage,
+            grade: 'lop-7',
+            apiKey: state.apiKey
+          })
+        });
+        const data = await res.json();
+        if (data.summary) state.summary = data.summary;
+        if (data.mainTheme) state.mainTheme = data.mainTheme;
+        if (data.vocabulary) state.vocabulary = data.vocabulary;
+        if (data.questions) {
+          state.questions = data.questions.map((item, idx) => ({
+            ...item,
+            id: item.id || `q-${idx+1}`,
+            studentAnswer: '',
+            revealedHints: 0
+          }));
+        }
+        renderHeader();
+        renderVocab();
+        renderQuestions();
+      } catch (err) {
+        alert('Lỗi khi phân tích ngữ liệu với AI.');
+      } finally {
+        icon.classList.remove('animate-spin');
+      }
+    }
+
+    let standaloneAudio = null;
+    let isPlayingAudio = false;
+
+    async function readPassageAudio() {
+      const btn = document.querySelector('button[onclick="readPassageAudio()"]');
+      if (isPlayingAudio && standaloneAudio) {
+        standaloneAudio.pause();
+        standaloneAudio = null;
+        isPlayingAudio = false;
+        if (btn) btn.innerHTML = '<i class="fas fa-headphones mr-1 text-cyan-400"></i>Đọc mẫu';
+        return;
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1 text-cyan-400"></i>Đang tải...';
+
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: state.passage })
+        });
+        if (!res.ok) throw new Error('TTS server not available');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        standaloneAudio = new Audio(url);
+        standaloneAudio.playbackRate = 0.95;
+        standaloneAudio.onended = () => {
+          isPlayingAudio = false;
+          standaloneAudio = null;
+          if (btn) btn.innerHTML = '<i class="fas fa-headphones mr-1 text-cyan-400"></i>Đọc mẫu';
+        };
+        await standaloneAudio.play();
+        isPlayingAudio = true;
+        if (btn) btn.innerHTML = '<i class="fas fa-pause mr-1 text-cyan-400"></i>Dừng đọc';
+      } catch (err) {
+        // Fallback to browser Web Speech API
+        if (!('speechSynthesis' in window)) {
+          alert('Trình duyệt chưa hỗ trợ Text-to-speech.');
+          if (btn) btn.innerHTML = '<i class="fas fa-headphones mr-1 text-cyan-400"></i>Đọc mẫu';
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(state.passage);
+        u.lang = 'vi-VN';
+        u.rate = 0.92;
+        u.onend = () => {
+          isPlayingAudio = false;
+          if (btn) btn.innerHTML = '<i class="fas fa-headphones mr-1 text-cyan-400"></i>Đọc mẫu';
+        };
+        window.speechSynthesis.speak(u);
+        isPlayingAudio = true;
+        if (btn) btn.innerHTML = '<i class="fas fa-pause mr-1 text-cyan-400"></i>Dừng đọc';
+      }
+    }
+
+    // Modal controls
+    function openApiKeyModal() {
+      document.getElementById('input-api-key').value = state.apiKey;
+      document.getElementById('modal-api-key').classList.remove('hidden');
+      document.getElementById('modal-api-key').classList.add('flex');
+    }
+    function closeApiKeyModal() {
+      document.getElementById('modal-api-key').classList.add('hidden');
+      document.getElementById('modal-api-key').classList.remove('flex');
+    }
+    function saveApiKeyFromModal() {
+      const val = document.getElementById('input-api-key').value.trim();
+      state.apiKey = val;
+      localStorage.setItem('gemini_api_key', val);
+      closeApiKeyModal();
+      renderHeader();
+    }
+    function clearSavedApiKey() {
+      state.apiKey = '';
+      localStorage.removeItem('gemini_api_key');
+      document.getElementById('input-api-key').value = '';
+      closeApiKeyModal();
+      renderHeader();
+    }
+
+    function openStudentModal() {
+      document.getElementById('input-student-name').value = state.student.name;
+      document.getElementById('input-student-class').value = state.student.className;
+      document.getElementById('modal-student').classList.remove('hidden');
+      document.getElementById('modal-student').classList.add('flex');
+    }
+    function closeStudentModal() {
+      document.getElementById('modal-student').classList.add('hidden');
+      document.getElementById('modal-student').classList.remove('flex');
+    }
+    function saveStudentModal() {
+      state.student.name = document.getElementById('input-student-name').value.trim() || 'Học sinh';
+      state.student.className = document.getElementById('input-student-class').value.trim() || 'Lớp 7A1';
+      localStorage.setItem('thcs_student_profile', JSON.stringify(state.student));
+      closeStudentModal();
+      renderHeader();
+    }
+
+    function openPassageModal() {
+      document.getElementById('input-passage-title').value = state.title;
+      document.getElementById('input-passage-text').value = state.passage;
+      document.getElementById('modal-passage').classList.remove('hidden');
+      document.getElementById('modal-passage').classList.add('flex');
+    }
+    function closePassageModal() {
+      document.getElementById('modal-passage').classList.add('hidden');
+      document.getElementById('modal-passage').classList.remove('flex');
+    }
+    function savePassageModal() {
+      const newTitle = document.getElementById('input-passage-title').value.trim() || 'Ngữ liệu đọc hiểu';
+      const newText = document.getElementById('input-passage-text').value.trim();
+      if (newText.length < 20) {
+        alert('Đoạn văn quá ngắn, vui lòng nhập ít nhất 20 ký tự.');
+        return;
+      }
+      state.title = newTitle;
+      state.passage = newText;
+      closePassageModal();
+      renderHeader();
+      renderPassage();
+      analyzePassageWithGemini();
+    }
+
+    // Run on startup
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
